@@ -1,0 +1,5 @@
+name = Map snapshot
+description = Module for snapshots from Google Maps
+core = 7.x
+stylesheets[all][] = map.css
+configure = admin/config/map-snapshot-config

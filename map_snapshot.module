@@ -1,0 +1,104 @@
+<?php
+google_map_field_add_maps_api();
+/**
+ * Implements hook_block_info().
+ */
+function map_snapshot_block_info()
+{
+  $blocks['map'] = [
+    'info' => t('Map snapshot'),
+    // Default setting.
+    'cache' => DRUPAL_CACHE_PER_ROLE,
+  ];
+  return $blocks;
+}
+
+function map_snapshot_theme()
+{
+  return ['block_map_snapshot' => [
+    'render element' => 'block',
+    'template' => 'block-map-snapshot']];
+}
+
+/**
+ * Implements hook_block_view().
+ */
+function map_snapshot_block_view($delta = '')
+{
+  $block = [];
+
+  switch ($delta) {
+    case 'map' :
+      $block['content']['#theme'] = 'block_map_snapshot';
+      $block['content']['#attached'] = [
+        'js' => [
+          drupal_get_path('module', 'map_snapshot') . '/map.js',
+        ]
+      ];
+      break;
+  }
+  return $block;
+}
+
+function google_map_field_add_maps_api()
+{
+  $element = [
+    '#type' => 'markup',
+    '#markup' => '<script async type="text/javascript" src="https://maps.googleapis.com/maps/api/js?key=' .variable_get('google-maps-api-key'). '&v=beta&callback=initMap&libraries=places" defer></script>',
+  ];
+
+  drupal_add_html_head($element, 'google_maps_api');
+}
+
+function map_snapshot_menu()
+{
+  $items = [];
+
+  $items['admin/config/map-snapshot-config'] = [
+    'title' => 'Map snapshot configuration',
+    'description' => 'Settings for map spapshot',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => ['map_snapshot_form'],
+    'access arguments' => ['access administration pages'],
+    'type' => MENU_NORMAL_ITEM
+  ];
+
+  return $items;
+}
+
+function map_snapshot_form($form, &$form_state)
+{
+  $form['google-maps-api-key'] = [
+    '#type' => 'textfield',
+    '#title' => t('Google maps API key'),
+    '#default_value' => variable_get('google-maps-api-key',),
+    '#size' => 100,
+    '#maxlength' => 100,
+    '#required' => TRUE,
+  ];
+  return system_settings_form($form);
+}
+
+function map_snapshot_form_alter(&$form, &$form_state, $form_id) {
+  if ($form_id == 'map_snapshot_node_form') {
+    $form['field_snapshot']['#access'] = 0;
+    $form['urlCapture'] = [
+      '#type' => 'textarea',
+      '#attributes'=> ['id' => 'url-capture-id'],
+      '#title' => t('static map url'),
+      '#required' => True,
+    ];
+  }
+}
+function map_snapshot_node_presave($node) {
+
+  if($node->type == "map_snapshot") {
+    $image = file_get_contents($node->urlCapture);
+    $path = 'public://' . $node->title;
+    $file  = file_save_data($image, $path,FILE_EXISTS_REPLACE);
+    $node->field_snapshot[LANGUAGE_NONE]['0']['fid'] =  $file->fid;
+  }
+}
+
+//drupal_add_js(drupal_get_path('module', 'map_snapshot') . '/map-leaflet.js');
+
